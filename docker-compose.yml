@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: deploy/product-service/Dockerfile
+    container_name: product-service
     ports:
       - "8080:8080"
     environment:
@@ -13,3 +14,34 @@ services:
       - CORS_ORIGIN=http://localhost:*
       - COMMON_RATE_LIMIT_WINDOW_MS=1000
       - COMMON_RATE_LIMIT_MAX_REQUESTS=20
+
+  review-service-1:
+    build:
+      context: .
+      dockerfile: deploy/review-service/Dockerfile
+    container_name: review-service-1
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - HOST=localhost
+      - CORS_ORIGIN=http://localhost:*
+      - COMMON_RATE_LIMIT_WINDOW_MS=1000
+      - COMMON_RATE_LIMIT_MAX_REQUESTS=20
+
+  review-service-2:
+    build:
+      context: .
+      dockerfile: deploy/review-service/Dockerfile
+    container_name: review-service-2
+    ports:
+      - "8082:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - HOST=localhost
+      - CORS_ORIGIN=http://localhost:*
+      - COMMON_RATE_LIMIT_WINDOW_MS=1000
+      - COMMON_RATE_LIMIT_MAX_REQUESTS=20
+    

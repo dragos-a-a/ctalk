@@ -4,7 +4,7 @@ import { app, logger } from './src/server'
 
 const server = app.listen(env.PORT, () => {
   const { NODE_ENV, HOST, PORT } = env
-  logger.info(`Product Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`)
+  logger.info(`Review Scoring Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`)
 })
 
 const onCloseSignal = () => {

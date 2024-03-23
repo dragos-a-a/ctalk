@@ -4,9 +4,11 @@
   "description": "CTalk based off express-typescript-boilerplate",
   "main": "index.ts",
   "scripts": {
-    "dev:product": "tsx watch --clear-screen=false packages/product-service/index.ts | pino-pretty",
     "build": "rimraf dist && tsup",
+    "dev:product": "tsx watch --clear-screen=false packages/product-service/index.ts | pino-pretty",
     "start:product": "node dist/product-service/index.js",
+    "dev:review": "tsx watch --clear-screen=false packages/review-service/index.ts | pino-pretty",
+    "start:review": "node dist/review-service/index.js",
     "clean": "rimraf dist coverage",
     "lint": "eslint",
     "lint:fix": "eslint --fix",

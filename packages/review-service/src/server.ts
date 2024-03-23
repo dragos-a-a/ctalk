@@ -9,7 +9,7 @@ import express, { Express } from 'express'
 import helmet from 'helmet'
 import { pino } from 'pino'
 
-import { productRegistry, productRouter } from './api/productRouter'
+import { reviewScoringRegistry, reviewScoringRouter } from './api/reviewScoringRouter'
 
 const logger = pino({ name: 'server start' })
 const app: Express = express()
@@ -30,10 +30,10 @@ app.use(requestLogger())
 
 // Routes
 app.use('/health-check', healthCheckRouter)
-app.use('/products', productRouter)
+app.use('/review-scoring', reviewScoringRouter)
 
 // Swagger UI
-app.use(getOpenAPIRouter(productRegistry))
+app.use(getOpenAPIRouter(reviewScoringRegistry))
 
 // Error handlers
 app.use(errorHandler())
