@@ -1,8 +1,8 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['./src'],
+  entry: ['./packages'],
   splitting: false,
   sourcemap: true,
   clean: true,
-});
+})

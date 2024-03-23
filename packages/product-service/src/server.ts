@@ -1,15 +1,15 @@
+import { healthCheckRouter } from '@common/api/healthCheck/healthCheckRouter'
+import { getOpenAPIRouter } from '@common/api-docs/openAPIRouter'
+import errorHandler from '@common/generic/middleware/errorHandler'
+import { getRateLimiter } from '@common/generic/middleware/rateLimiter'
+import requestLogger from '@common/generic/middleware/requestLogger'
+import { env } from '@common/generic/utils/envConfig'
 import cors from 'cors'
 import express, { Express } from 'express'
 import helmet from 'helmet'
 import { pino } from 'pino'
 
-import { healthCheckRouter } from '@/api/healthCheck/healthCheckRouter'
-import { productRouter } from '@/api/product/productRouter'
-import { openAPIRouter } from '@/api-docs/openAPIRouter'
-import errorHandler from '@/common/middleware/errorHandler'
-import rateLimiter from '@/common/middleware/rateLimiter'
-import requestLogger from '@/common/middleware/requestLogger'
-import { env } from '@/common/utils/envConfig'
+import { productRegistry, productRouter } from './api/productRouter'
 
 const logger = pino({ name: 'server start' })
 const app: Express = express()
@@ -20,7 +20,7 @@ app.set('trust proxy', true)
 // Middlewares
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }))
 app.use(helmet())
-app.use(rateLimiter)
+app.use(getRateLimiter(logger))
 
 // Request logging
 app.use(requestLogger())
@@ -30,7 +30,7 @@ app.use('/health-check', healthCheckRouter)
 app.use('/products', productRouter)
 
 // Swagger UI
-app.use(openAPIRouter)
+app.use(getOpenAPIRouter(productRegistry))
 
 // Error handlers
 app.use(errorHandler())

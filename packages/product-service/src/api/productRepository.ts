@@ -1,4 +1,4 @@
-import { Product } from '@/api/product/productModel'
+import { Product } from './productModel'
 
 export const products: Product[] = [
   {

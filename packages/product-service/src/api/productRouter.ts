@@ -1,11 +1,11 @@
 import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
+import { createApiResponse } from '@common/api-docs/openAPIResponseBuilders'
+import { handleServiceResponse, validateRequest } from '@common/generic/utils/httpHandlers'
 import express, { Request, Response, Router } from 'express'
 import { z } from 'zod'
 
-import { GetProductSchema, ProductSchema } from '@/api/product/productModel'
-import { productService } from '@/api/product/productService'
-import { createApiResponse } from '@/api-docs/openAPIResponseBuilders'
-import { handleServiceResponse, validateRequest } from '@/common/utils/httpHandlers'
+import { GetProductSchema, ProductSchema } from './productModel'
+import { productService } from './productService'
 
 export const productRegistry = new OpenAPIRegistry()
 

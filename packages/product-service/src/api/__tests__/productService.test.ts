@@ -1,13 +1,13 @@
 import { StatusCodes } from 'http-status-codes'
 import { Mock } from 'vitest'
 
-import { Product } from '@/api/product/productModel'
-import { productRepository } from '@/api/product/productRepository'
-import { productService } from '@/api/product/productService'
+import { Product } from '../productModel'
+import { productRepository } from '../productRepository'
+import { productService } from '../productService'
 
-vi.mock('@/api/product/productRepository')
-vi.mock('@/server', () => ({
-  ...vi.importActual('@/server'),
+vi.mock('../productRepository')
+vi.mock('../../server', () => ({
+  ...vi.importActual('../../server'),
   logger: {
     error: vi.fn(),
   },

@@ -1,10 +1,10 @@
+import { ServiceResponse } from '@common/generic/models/serviceResponse'
 import { StatusCodes } from 'http-status-codes'
 import request from 'supertest'
 
-import { Product } from '@/api/product/productModel'
-import { products } from '@/api/product/productRepository'
-import { ServiceResponse } from '@/common/models/serviceResponse'
-import { app } from '@/server'
+import { app } from '../../server'
+import { Product } from '../productModel'
+import { products } from '../productRepository'
 
 describe('Product API Endpoints', () => {
   describe('GET /products', () => {

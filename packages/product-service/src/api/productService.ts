@@ -1,9 +1,9 @@
+import { ResponseStatus, ServiceResponse } from '@common/generic/models/serviceResponse'
 import { StatusCodes } from 'http-status-codes'
 
-import { Product } from '@/api/product/productModel'
-import { productRepository } from '@/api/product/productRepository'
-import { ResponseStatus, ServiceResponse } from '@/common/models/serviceResponse'
-import { logger } from '@/server'
+import { logger } from '../server'
+import { Product } from './productModel'
+import { productRepository } from './productRepository'
 
 export const productService = {
   // Retrieves all products from the database

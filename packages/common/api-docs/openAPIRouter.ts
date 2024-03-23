@@ -1,11 +1,12 @@
+import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 import express, { Request, Response, Router } from 'express'
 import swaggerUi from 'swagger-ui-express'
 
-import { generateOpenAPIDocument } from '@/api-docs/openAPIDocumentGenerator'
+import { generateOpenAPIDocument } from './openAPIDocumentGenerator'
 
-export const openAPIRouter: Router = (() => {
+export const getOpenAPIRouter = (apiRegistry: OpenAPIRegistry): Router => {
   const router = express.Router()
-  const openAPIDocument = generateOpenAPIDocument()
+  const openAPIDocument = generateOpenAPIDocument(apiRegistry)
 
   router.get('/swagger.json', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json')
@@ -15,4 +16,4 @@ export const openAPIRouter: Router = (() => {
   router.use('/', swaggerUi.serve, swaggerUi.setup(openAPIDocument))
 
   return router
-})()
+}
