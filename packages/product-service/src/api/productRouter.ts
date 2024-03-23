@@ -4,7 +4,7 @@ import { handleServiceResponse, validateRequest } from '@common/generic/utils/ht
 import express, { Request, Response, Router } from 'express'
 import { z } from 'zod'
 
-import { GetProductSchema, ProductSchema } from './productModel'
+import { GetProductSchema, ProductSchema } from './models/productModel'
 import { productService } from './productService'
 
 export const productRegistry = new OpenAPIRegistry()

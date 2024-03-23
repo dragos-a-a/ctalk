@@ -10,4 +10,10 @@ export const env = cleanEnv(process.env, {
   CORS_ORIGIN: str(),
   COMMON_RATE_LIMIT_MAX_REQUESTS: num(),
   COMMON_RATE_LIMIT_WINDOW_MS: num(),
+  DB_HOST: str(),
+  DB_PORT: port(),
+  DB_USER: str(),
+  DB_PWD: str(),
+  DB_NAME: str(),
+  DB_ROOT_PWD: str(),
 })

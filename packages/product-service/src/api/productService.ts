@@ -2,7 +2,7 @@ import { ResponseStatus, ServiceResponse } from '@common/generic/models/serviceR
 import { StatusCodes } from 'http-status-codes'
 
 import { logger } from '../server'
-import { Product } from './productModel'
+import { Product } from './models/productModel'
 import { productRepository } from './productRepository'
 
 export const productService = {

@@ -1,5 +1,21 @@
 version: '3'
+volumes:
+  mariadb_data:
+
 services:
+  mariadb:
+    image: mariadb
+    container_name: ${DB_HOST}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PWD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PWD}
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
   product-service:
     build:
       context: .
@@ -8,12 +24,20 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
       - PORT=8080
-      - HOST=localhost
-      - CORS_ORIGIN=http://localhost:*
-      - COMMON_RATE_LIMIT_WINDOW_MS=1000
-      - COMMON_RATE_LIMIT_MAX_REQUESTS=20
+      - HOST=${HOST}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - COMMON_RATE_LIMIT_WINDOW_MS=${COMMON_RATE_LIMIT_WINDOW_MS}
+      - COMMON_RATE_LIMIT_MAX_REQUESTS=${COMMON_RATE_LIMIT_MAX_REQUESTS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PWD=${DB_PWD}
+      - DB_ROOT_PWD=${DB_ROOT_PWD}
+    depends_on:
+      - mariadb
 
   review-service-1:
     build:
@@ -23,12 +47,20 @@ services:
     ports:
       - "8081:8080"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
       - PORT=8080
-      - HOST=localhost
-      - CORS_ORIGIN=http://localhost:*
-      - COMMON_RATE_LIMIT_WINDOW_MS=1000
-      - COMMON_RATE_LIMIT_MAX_REQUESTS=20
+      - HOST=${HOST}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - COMMON_RATE_LIMIT_WINDOW_MS=${COMMON_RATE_LIMIT_WINDOW_MS}
+      - COMMON_RATE_LIMIT_MAX_REQUESTS=${COMMON_RATE_LIMIT_MAX_REQUESTS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PWD=${DB_PWD}
+      - DB_ROOT_PWD=${DB_ROOT_PWD}
+    depends_on:
+      - mariadb
 
   review-service-2:
     build:
@@ -38,10 +70,17 @@ services:
     ports:
       - "8082:8080"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
       - PORT=8080
-      - HOST=localhost
-      - CORS_ORIGIN=http://localhost:*
-      - COMMON_RATE_LIMIT_WINDOW_MS=1000
-      - COMMON_RATE_LIMIT_MAX_REQUESTS=20
-    
+      - HOST=${HOST}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - COMMON_RATE_LIMIT_WINDOW_MS=${COMMON_RATE_LIMIT_WINDOW_MS}
+      - COMMON_RATE_LIMIT_MAX_REQUESTS=${COMMON_RATE_LIMIT_MAX_REQUESTS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PWD=${DB_PWD}
+      - DB_ROOT_PWD=${DB_ROOT_PWD}
+    depends_on:
+      - mariadb

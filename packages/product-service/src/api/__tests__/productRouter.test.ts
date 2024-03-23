@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import request from 'supertest'
 
 import { app } from '../../server'
-import { Product } from '../productModel'
+import { Product } from '../models/productModel'
 import { products } from '../productRepository'
 
 describe('Product API Endpoints', () => {

@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import { Mock } from 'vitest'
 
-import { Product } from '../productModel'
+import { Product } from '../models/productModel'
 import { productRepository } from '../productRepository'
 import { productService } from '../productService'
 
