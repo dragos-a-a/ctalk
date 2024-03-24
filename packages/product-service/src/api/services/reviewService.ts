@@ -15,6 +15,16 @@ export const getReviewService = (pool: Pool, redis: Redis) => {
   const productRepository = getProductRepository(pool)
   const productReviewsRepository = getProductReviewsRepository(pool)
 
+  const publishReviewUpdate = async (params: {
+    productId: number
+    reviewId: number
+    type: 'add' | 'update' | 'delete'
+    oldRating?: number
+    newRating?: number
+  }) => {
+    redis.publish(REDIS_REVIEW_CHANNEL_NAME, JSON.stringify(params))
+  }
+
   return {
     findAll: async (): Promise<ServiceResponse<Review[] | null>> => {
       try {
@@ -89,10 +99,7 @@ export const getReviewService = (pool: Pool, redis: Redis) => {
           )
         }
 
-        redis.publish(
-          REDIS_REVIEW_CHANNEL_NAME,
-          JSON.stringify({ productId, reviewId: newReviewId, type: 'add', newRating: review.rating })
-        )
+        publishReviewUpdate({ productId, reviewId: newReviewId, type: 'add', newRating: review.rating })
 
         return new ServiceResponse<number>(ResponseStatus.Success, 'Review created', newReviewId, StatusCodes.CREATED)
       } catch (ex) {
@@ -120,17 +127,13 @@ export const getReviewService = (pool: Pool, redis: Redis) => {
           )
         }
 
-        // TODO: care if rating changes until we process it
-        redis.publish(
-          REDIS_REVIEW_CHANNEL_NAME,
-          JSON.stringify({
-            productId: foundReview.productId,
-            reviewId: id,
-            type: 'update',
-            oldRating: foundReview.rating,
-            newRating: review.rating,
-          })
-        )
+        publishReviewUpdate({
+          productId: foundReview.productId,
+          reviewId: id,
+          type: 'update',
+          oldRating: foundReview.rating,
+          newRating: review.rating,
+        })
 
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review updated', hasUpdated, StatusCodes.OK)
       } catch (ex) {
@@ -168,15 +171,12 @@ export const getReviewService = (pool: Pool, redis: Redis) => {
           )
         }
 
-        redis.publish(
-          REDIS_REVIEW_CHANNEL_NAME,
-          JSON.stringify({
-            productId: foundReview.productId,
-            reviewId: id,
-            type: 'delete',
-            oldRating: foundReview.rating,
-          })
-        )
+        publishReviewUpdate({
+          productId: foundReview.productId,
+          reviewId: id,
+          type: 'delete',
+          oldRating: foundReview.rating,
+        })
 
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review deleted', hasDeletedReview, StatusCodes.OK)
       } catch (ex) {

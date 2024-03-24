@@ -75,9 +75,9 @@ export const initDb = async (logger: Logger, pool: mysql.Pool): Promise<void> =>
 
   logger.info('Seeding data...')
 
-  const insertProductSql = 'INSERT INTO products (name, description, price) VALUES (?, ?, ?)'
-  await connection.execute(insertProductSql, ['IPhone 14 PRO', 'One popular mobile phone', 10.99])
-  await connection.execute(insertProductSql, ['Samsung Galaxy S22', 'One popular mobile phone', 20.99])
+  const insertProductSql = 'INSERT INTO products (name, description, price, avgReviewRating) VALUES (?, ?, ?, ?)'
+  await connection.execute(insertProductSql, ['IPhone 14 PRO', 'One popular mobile phone', 10.99, 5])
+  await connection.execute(insertProductSql, ['Samsung Galaxy S22', 'One popular mobile phone', 20.99, 4])
 
   const insertReviewSql = 'INSERT INTO reviews (firstName, lastName, reviewText, rating) VALUES (?, ?, ?, ?)'
   await connection.execute(insertReviewSql, ['John', 'Doe', 'Great product!', 5])
