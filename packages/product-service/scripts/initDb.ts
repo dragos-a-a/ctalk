@@ -4,6 +4,8 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
   // try connecting to the DB via retries for 15 seconds
   let retries = 0
   let connection
+  // first waiting a bit to give the DB time to start
+  await new Promise((resolve) => setTimeout(resolve, 5000))
   while (retries < 3 && !connection) {
     try {
       connection = await pool.getConnection()
@@ -71,8 +73,8 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
 
   // Seed the tables with data
   const insertProductSql = 'INSERT INTO Products (name, description, price) VALUES (?, ?, ?)'
-  await connection.execute(insertProductSql, ['Product 1', 'Description 1', 10.99])
-  await connection.execute(insertProductSql, ['Product 2', 'Description 2', 20.99])
+  await connection.execute(insertProductSql, ['IPhone 14 PRO', 'One popular mobile phone', 10.99])
+  await connection.execute(insertProductSql, ['Samsung Galaxy S22', 'One popular mobile phone', 20.99])
 
   const insertReviewSql = 'INSERT INTO Reviews (firstName, lastName, reviewText, rating) VALUES (?, ?, ?, ?)'
   await connection.execute(insertReviewSql, ['John', 'Doe', 'Great product!', 5])

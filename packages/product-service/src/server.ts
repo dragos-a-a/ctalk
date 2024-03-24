@@ -14,6 +14,7 @@ import { initDb } from '../scripts/initDb'
 import { productRegistry, productRouter } from './api/productRouter'
 
 const logger = pino({ name: 'server start' })
+
 logger.info('Initializing database')
 const { DB_NAME, DB_HOST, DB_PORT, DB_USER, DB_PWD } = env
 const pool = mysql.createPool({

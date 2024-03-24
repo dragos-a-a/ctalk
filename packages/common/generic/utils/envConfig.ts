@@ -15,5 +15,4 @@ export const env = cleanEnv(process.env, {
   DB_USER: str(),
   DB_PWD: str(),
   DB_NAME: str(),
-  DB_ROOT_PWD: str(),
 })

@@ -1,11 +1,10 @@
 version: '3'
 volumes:
-  mariadb_data:
+  db_data:
 
 services:
-  mariadb:
+  db-service:
     image: mariadb
-    container_name: ${DB_HOST}
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PWD}
       MYSQL_DATABASE: ${DB_NAME}
@@ -14,7 +13,7 @@ services:
     ports:
       - "${DB_PORT}:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
 
   product-service:
     build:
@@ -30,14 +29,13 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
       - COMMON_RATE_LIMIT_WINDOW_MS=${COMMON_RATE_LIMIT_WINDOW_MS}
       - COMMON_RATE_LIMIT_MAX_REQUESTS=${COMMON_RATE_LIMIT_MAX_REQUESTS}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
+      - DB_HOST=db-service
+      - DB_PORT=3306
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PWD=${DB_PWD}
-      - DB_ROOT_PWD=${DB_ROOT_PWD}
     depends_on:
-      - mariadb
+      - db-service
 
   review-service-1:
     build:
@@ -53,14 +51,13 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
       - COMMON_RATE_LIMIT_WINDOW_MS=${COMMON_RATE_LIMIT_WINDOW_MS}
       - COMMON_RATE_LIMIT_MAX_REQUESTS=${COMMON_RATE_LIMIT_MAX_REQUESTS}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
+      - DB_HOST=db-service
+      - DB_PORT=3306
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PWD=${DB_PWD}
-      - DB_ROOT_PWD=${DB_ROOT_PWD}
     depends_on:
-      - mariadb
+      - db-service
 
   review-service-2:
     build:
@@ -76,11 +73,10 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
       - COMMON_RATE_LIMIT_WINDOW_MS=${COMMON_RATE_LIMIT_WINDOW_MS}
       - COMMON_RATE_LIMIT_MAX_REQUESTS=${COMMON_RATE_LIMIT_MAX_REQUESTS}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
+      - DB_HOST=db-service
+      - DB_PORT=3306
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PWD=${DB_PWD}
-      - DB_ROOT_PWD=${DB_ROOT_PWD}
     depends_on:
-      - mariadb
+      - db-service
