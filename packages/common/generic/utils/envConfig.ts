@@ -15,4 +15,6 @@ export const env = cleanEnv(process.env, {
   DB_USER: str(),
   DB_PWD: str(),
   DB_NAME: str(),
+  REDIS_HOST: str(),
+  REDIS_PORT: port(),
 })

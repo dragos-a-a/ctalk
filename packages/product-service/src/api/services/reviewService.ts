@@ -1,5 +1,7 @@
 import { ResponseStatus, ServiceResponse } from '@common/generic/models/serviceResponse'
+import { REDIS_REVIEW_CHANNEL_NAME } from '@common/generic/utils/constants'
 import { StatusCodes } from 'http-status-codes'
+import { Redis } from 'ioredis'
 import { Pool } from 'mysql2/promise'
 
 import { logger } from '../../server'
@@ -8,7 +10,7 @@ import { getProductRepository } from '../repositories/productRepository'
 import { getProductReviewsRepository } from '../repositories/productReviewsRepository'
 import { getReviewRepository } from '../repositories/reviewRepository'
 
-export const getReviewService = (pool: Pool) => {
+export const getReviewService = (pool: Pool, redis: Redis) => {
   const reviewRepository = getReviewRepository(pool)
   const productRepository = getProductRepository(pool)
   const productReviewsRepository = getProductReviewsRepository(pool)
@@ -73,7 +75,10 @@ export const getReviewService = (pool: Pool) => {
           )
         }
 
-        // TODO: trigger avg review computing and related product updates via other service
+        redis.publish(
+          REDIS_REVIEW_CHANNEL_NAME,
+          JSON.stringify({ productId, reviewId: newReviewId, type: 'add', newRating: review.rating })
+        )
 
         return new ServiceResponse<number>(ResponseStatus.Success, 'Review created', newReviewId, StatusCodes.CREATED)
       } catch (ex) {
@@ -101,7 +106,17 @@ export const getReviewService = (pool: Pool) => {
           )
         }
 
-        // TODO: trigger avg review computing and related product updates via other service
+        // TODO: care if rating changes until we process it
+        redis.publish(
+          REDIS_REVIEW_CHANNEL_NAME,
+          JSON.stringify({
+            productId: foundReview.productId,
+            reviewId: id,
+            type: 'update',
+            oldRating: foundReview.rating,
+            newRating: review.rating,
+          })
+        )
 
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review updated', hasUpdated, StatusCodes.OK)
       } catch (ex) {
@@ -139,7 +154,15 @@ export const getReviewService = (pool: Pool) => {
           )
         }
 
-        // TODO: trigger avg review computing and related product updates via other service
+        redis.publish(
+          REDIS_REVIEW_CHANNEL_NAME,
+          JSON.stringify({
+            productId: foundReview.productId,
+            reviewId: id,
+            type: 'delete',
+            oldRating: foundReview.rating,
+          })
+        )
 
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review deleted', hasDeletedReview, StatusCodes.OK)
       } catch (ex) {

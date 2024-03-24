@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise'
+import { Logger } from 'pino'
 
-export const initDb = async (pool: mysql.Pool): Promise<void> => {
+export const initDb = async (logger: Logger, pool: mysql.Pool): Promise<void> => {
   // try connecting to the DB via retries for 15 seconds
   let retries = 0
   let connection
@@ -9,17 +10,17 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
   while (retries < 3 && !connection) {
     try {
       connection = await pool.getConnection()
-      console.log('Connected to database!')
+      logger.info('Connected to database!')
       break
     } catch (err) {
-      console.error('Could not connect to database. Retrying...', err)
+      logger.error('Could not connect to database. Retrying...', err)
       retries++
       await new Promise((resolve) => setTimeout(resolve, 5000))
     }
   }
 
   if (!connection) {
-    console.error('Could not connect to database. Exiting...')
+    logger.error('Could not connect to database. Exiting...')
     process.exit(1)
   }
 
@@ -29,7 +30,7 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
     return
   }
 
-  console.log('Creating tables and seeding data...')
+  logger.info('Creating tables and seeding data...')
 
   const createProductsTableSql = `
     CREATE TABLE IF NOT EXISTS products (
@@ -42,7 +43,7 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
   `
 
   await connection.execute(createProductsTableSql)
-  console.log('Products table created')
+  logger.info('Products table created')
 
   const createReviewsTableSql = `
     CREATE TABLE IF NOT EXISTS reviews (
@@ -55,7 +56,7 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
   `
 
   await connection.execute(createReviewsTableSql)
-  console.log('Reviews table created')
+  logger.info('Reviews table created')
 
   const createProductReviewsTableSql = `
     CREATE TABLE IF NOT EXISTS productReviews (
@@ -68,11 +69,11 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
   `
 
   await connection.execute(createProductReviewsTableSql)
-  console.log('ProductReviews table created')
+  logger.info('ProductReviews table created')
 
-  console.log('Tables created!')
+  logger.info('Tables created!')
 
-  console.log('Seeding data...')
+  logger.info('Seeding data...')
 
   const insertProductSql = 'INSERT INTO products (name, description, price) VALUES (?, ?, ?)'
   await connection.execute(insertProductSql, ['IPhone 14 PRO', 'One popular mobile phone', 10.99])
@@ -87,5 +88,5 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
   await connection.execute(insertProductReviewSql, [2, 2])
 
   connection.release()
-  console.log('Data seeded!')
+  logger.info('Data seeded!')
 }

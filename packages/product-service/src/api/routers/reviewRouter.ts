@@ -2,6 +2,7 @@ import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 import { createApiResponse } from '@common/api-docs/openAPIResponseBuilders'
 import { handleServiceResponse, validateRequest } from '@common/generic/utils/httpHandlers'
 import express, { Request, Response, Router } from 'express'
+import { Redis } from 'ioredis'
 import { Pool } from 'mysql2/promise'
 import { z } from 'zod'
 
@@ -16,9 +17,9 @@ import {
 } from '../models/reviewModel'
 import { getReviewService } from '../services/reviewService'
 
-export const getReviewRouter = (pool: Pool, openApiRegistry: OpenAPIRegistry): Router => {
+export const getReviewRouter = (pool: Pool, redis: Redis, openApiRegistry: OpenAPIRegistry): Router => {
   const router = express.Router()
-  const reviewService = getReviewService(pool)
+  const reviewService = getReviewService(pool, redis)
 
   openApiRegistry.register('Review', ReviewSchema)
   openApiRegistry.register('Review Create', ReviewCreateSchema)

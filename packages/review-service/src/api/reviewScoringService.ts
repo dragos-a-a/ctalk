@@ -1,20 +1,26 @@
-import { ResponseStatus, ServiceResponse } from '@common/generic/models/serviceResponse'
-import { StatusCodes } from 'http-status-codes'
+import { Redis } from 'ioredis'
+import { Pool } from 'mysql2/promise'
 
 import { logger } from '../server'
-import { reviewScoringRepository } from './reviewScoringRepository'
+import { getReviewScoringRepository } from './reviewScoringRepository'
 
-export const reviewScoringService = {
-  calculateScoreOnAdd: async (productId: number, reviewId: number): Promise<ServiceResponse<boolean>> => {
-    try {
-      console.log(`Calculating review score on add for productId: ${productId} and reviewId: ${reviewId}`)
-      // TODO: implement
-      const result = await reviewScoringRepository.calculateScore()
-      return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review Scorings found', result, StatusCodes.OK)
-    } catch (ex) {
-      const errorMessage = `Error calculating review score on add for productId: ${productId}: $${(ex as Error).message}`
-      logger.error(errorMessage)
-      return new ServiceResponse(ResponseStatus.Failed, errorMessage, false, StatusCodes.INTERNAL_SERVER_ERROR)
-    }
-  },
+export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
+  const reviewScoringRepository = getReviewScoringRepository(pool)
+
+  return {
+    calculateScoreOnAdd: async (productId: number, reviewId: number): Promise<boolean> => {
+      try {
+        logger.info(`Calculating review score on add for productId: ${productId} and reviewId: ${reviewId}`)
+        const updatedAvgScore = await reviewScoringRepository.calculateScore()
+        // TODO update in db
+        // proper cache invalidation
+        redisCache.del(`product:${productId}`)
+        return true
+      } catch (ex) {
+        const errorMessage = `Error calculating review score on add for productId: ${productId}: $${(ex as Error).message}`
+        logger.error(errorMessage)
+        return false
+      }
+    },
+  }
 }

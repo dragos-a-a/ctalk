@@ -1,19 +1,8 @@
-import { env } from '@common/generic/utils/envConfig'
-
-import { app, logger } from './src/server'
-
-const server = app.listen(env.PORT, () => {
-  const { NODE_ENV, HOST, PORT } = env
-  logger.info(`Review Scoring Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`)
-})
+import { logger } from './src/server'
 
 const onCloseSignal = () => {
   logger.info('sigint received, shutting down')
-  server.close(() => {
-    logger.info('server closed')
-    process.exit()
-  })
-  setTimeout(() => process.exit(1), 10000).unref() // Force shutdown after 10s
+  process.exit()
 }
 
 process.on('SIGINT', onCloseSignal)

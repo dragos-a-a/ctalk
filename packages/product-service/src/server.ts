@@ -8,6 +8,7 @@ import { env } from '@common/generic/utils/envConfig'
 import cors from 'cors'
 import express, { Express } from 'express'
 import helmet from 'helmet'
+import Redis from 'ioredis'
 import mysql from 'mysql2/promise'
 import { pino } from 'pino'
 
@@ -30,7 +31,24 @@ const pool = mysql.createPool({
   queueLimit: 0,
 })
 
-initDb(pool)
+initDb(logger, pool)
+
+logger.info('Initializing Redis')
+const { REDIS_HOST, REDIS_PORT } = env
+// using redis as both cache and publisher
+const redis = new Redis({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+})
+
+redis.on('connect', () => {
+  logger.info('Connected to Redis!')
+})
+
+redis.on('error', (error) => {
+  logger.error('Failed to connect to Redis:', error)
+})
+
 const openApiRegistry = new OpenAPIRegistry()
 
 const app: Express = express()
@@ -52,7 +70,7 @@ app.use(requestLogger())
 // Routes
 app.use('/health-check', healthCheckRouter)
 app.use('/products', getProductRouter(pool, openApiRegistry))
-app.use('/reviews', getReviewRouter(pool, openApiRegistry))
+app.use('/reviews', getReviewRouter(pool, redis, openApiRegistry))
 
 // Swagger UI
 app.use(getOpenAPIRouter(openApiRegistry))
