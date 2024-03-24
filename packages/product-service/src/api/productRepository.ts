@@ -1,6 +1,6 @@
-import { Pool } from 'mysql2/promise'
+import { Pool, ResultSetHeader } from 'mysql2/promise'
 
-import { Product } from './models/productModel'
+import { Product, ProductCreate } from './models/productModel'
 
 export const getProductRepository = (pool: Pool) => {
   return {
@@ -18,6 +18,32 @@ export const getProductRepository = (pool: Pool) => {
       if (Array.isArray(rows) && rows.length > 0) {
         return rows[0] as Product
       }
+    },
+
+    createAsync: async (product: ProductCreate): Promise<number | undefined> => {
+      const [result] = await pool.query('INSERT INTO products (name, description, price) VALUES (?, ?, ?)', [
+        product.name,
+        product.description,
+        product.price,
+      ])
+      if (result) {
+        return (result as ResultSetHeader).insertId
+      }
+    },
+
+    updateAsync: async (id: number, product: ProductCreate): Promise<boolean> => {
+      const [result] = await pool.query('UPDATE products SET name = ?, description = ?, price = ? WHERE id = ?', [
+        product.name,
+        product.description,
+        product.price,
+        id,
+      ])
+      return !!(result && (result as ResultSetHeader).affectedRows)
+    },
+
+    deleteByIdAsync: async (id: number): Promise<boolean> => {
+      const [result] = await pool.query('DELETE FROM products WHERE id = ?', [id])
+      return !!(result && (result as ResultSetHeader).affectedRows)
     },
   }
 }
