@@ -1,10 +1,10 @@
 import { Pool, ResultSetHeader } from 'mysql2/promise'
 
-import { Product, ProductCreate } from '../models/productModel'
+import { Product, ProductCreate, ProductReviewIdsPopulated } from '../models/productModel'
 
 export const getProductRepository = (pool: Pool) => {
   return {
-    findAllAsync: async (): Promise<Product[]> => {
+    findAllWithoutReviewsAsync: async (): Promise<Product[]> => {
       const [rows] = await pool.query('SELECT * FROM products')
       let result: Product[] = []
       if (rows) {
@@ -13,10 +13,23 @@ export const getProductRepository = (pool: Pool) => {
       return result
     },
 
-    findByIdAsync: async (id: number): Promise<Product | undefined> => {
+    findByIdWithoutReviewsAsync: async (id: number): Promise<Product | undefined> => {
       const [rows] = await pool.query('SELECT * FROM products WHERE id = ?', [id])
       if (Array.isArray(rows) && rows.length > 0) {
         return rows[0] as Product
+      }
+    },
+
+    findByIdIncludingReviewIdsAsync: async (id: number): Promise<ProductReviewIdsPopulated | undefined> => {
+      const [rows] = await pool.query(
+        'SELECT p.*, pr.reviewId FROM products p LEFT JOIN productReviews pr ON p.id = pr.productId WHERE p.id = ?',
+        [id]
+      )
+      if (Array.isArray(rows) && rows.length > 0) {
+        const product = rows[0] as ProductReviewIdsPopulated
+        product.reviewIds = rows.map((row: any) => row.reviewId)
+
+        return product
       }
     },
 

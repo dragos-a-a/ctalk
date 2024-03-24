@@ -52,9 +52,10 @@ export const getReviewRouter = (pool: Pool, openApiRegistry: OpenAPIRegistry): R
 
   openApiRegistry.registerPath({
     method: 'post',
-    path: '/reviews',
+    path: '/reviews/{productId}',
     tags: ['Review'],
     request: {
+      params: PostReviewSchema.shape.params,
       body: {
         content: {
           'application/json': {
@@ -66,8 +67,9 @@ export const getReviewRouter = (pool: Pool, openApiRegistry: OpenAPIRegistry): R
     responses: createApiResponse(z.number(), 'Success'),
   })
 
-  router.post('/', validateRequest(PostReviewSchema), async (req: Request, res: Response) => {
-    const serviceResponse = await reviewService.create(req.body as ReviewCreate)
+  router.post('/:productId', validateRequest(PostReviewSchema), async (req: Request, res: Response) => {
+    const productId = parseInt(req.params.productId as string, 10)
+    const serviceResponse = await reviewService.create(productId, req.body as ReviewCreate)
     handleServiceResponse(serviceResponse, res)
   })
 

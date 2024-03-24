@@ -23,6 +23,7 @@ export const ReviewCreateSchema = ReviewUpdateSchema.merge(
 export const ReviewSchema = ReviewCreateSchema.merge(
   z.object({
     id: z.number(),
+    productId: z.number(),
   })
 )
 
@@ -42,6 +43,7 @@ const updateFieldsValidation = {
 
 // Input Validation for 'POST reviews' endpoint
 export const PostReviewSchema = z.object({
+  params: z.object({ productId: commonValidations.id }),
   body: z.object({
     firstName: z.string().refine((firstName) => firstName.length > 0, { message: 'First name must not be empty' }),
     lastName: z.string().refine((lastName) => lastName.length > 0, { message: 'Last name must not be empty' }),

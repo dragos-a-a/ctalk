@@ -4,11 +4,15 @@ import { Pool } from 'mysql2/promise'
 
 import { logger } from '../../server'
 import { Review, ReviewCreate, ReviewUpdate } from '../models/reviewModel'
+import { getProductRepository } from '../repositories/productRepository'
+import { getProductReviewsRepository } from '../repositories/productReviewsRepository'
 import { getReviewRepository } from '../repositories/reviewRepository'
 
-// TODO: enhance with product relationships
 export const getReviewService = (pool: Pool) => {
   const reviewRepository = getReviewRepository(pool)
+  const productRepository = getProductRepository(pool)
+  const productReviewsRepository = getProductReviewsRepository(pool)
+
   return {
     findAll: async (): Promise<ServiceResponse<Review[] | null>> => {
       try {
@@ -38,8 +42,16 @@ export const getReviewService = (pool: Pool) => {
       }
     },
 
-    create: async (review: ReviewCreate): Promise<ServiceResponse<number | null>> => {
+    create: async (productId: number, review: ReviewCreate): Promise<ServiceResponse<number | null>> => {
       try {
+        const foundProduct = await productRepository.findByIdWithoutReviewsAsync(productId)
+
+        if (!foundProduct) {
+          return new ServiceResponse(ResponseStatus.Failed, 'Product not found', null, StatusCodes.NOT_FOUND)
+        }
+
+        // TODO (out of scope): consider not allowing multiple reviews from same user
+
         const newReviewId = await reviewRepository.createAsync(review)
         if (!newReviewId) {
           return new ServiceResponse(
@@ -49,6 +61,20 @@ export const getReviewService = (pool: Pool) => {
             StatusCodes.INTERNAL_SERVER_ERROR
           )
         }
+
+        const hasAttachedReview = await productReviewsRepository.addProductReviewAsync(productId, newReviewId)
+        if (!hasAttachedReview) {
+          await reviewRepository.deleteByIdAsync(newReviewId)
+          return new ServiceResponse(
+            ResponseStatus.Failed,
+            'Review not attached to product',
+            null,
+            StatusCodes.INTERNAL_SERVER_ERROR
+          )
+        }
+
+        // TODO: trigger avg review computing and related product updates via other service
+
         return new ServiceResponse<number>(ResponseStatus.Success, 'Review created', newReviewId, StatusCodes.CREATED)
       } catch (ex) {
         const errorMessage = `Error creating review: ${(ex as Error).message}`
@@ -59,9 +85,9 @@ export const getReviewService = (pool: Pool) => {
 
     update: async (id: number, review: ReviewUpdate): Promise<ServiceResponse<boolean>> => {
       try {
-        const foundItem = await reviewRepository.findByIdAsync(id)
+        const foundReview = await reviewRepository.findByIdAsync(id)
 
-        if (!foundItem) {
+        if (!foundReview) {
           return new ServiceResponse(ResponseStatus.Failed, 'Review not found', false, StatusCodes.NOT_FOUND)
         }
 
@@ -74,6 +100,9 @@ export const getReviewService = (pool: Pool) => {
             StatusCodes.INTERNAL_SERVER_ERROR
           )
         }
+
+        // TODO: trigger avg review computing and related product updates via other service
+
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review updated', hasUpdated, StatusCodes.OK)
       } catch (ex) {
         const errorMessage = `Error updating review with id ${id}: ${(ex as Error).message}`
@@ -84,14 +113,24 @@ export const getReviewService = (pool: Pool) => {
 
     delete: async (id: number): Promise<ServiceResponse<boolean>> => {
       try {
-        const foundItem = await reviewRepository.findByIdAsync(id)
+        const foundReview = await reviewRepository.findByIdAsync(id)
 
-        if (!foundItem) {
+        if (!foundReview) {
           return new ServiceResponse(ResponseStatus.Failed, 'Review not found', false, StatusCodes.NOT_FOUND)
         }
 
-        const hasDeleted = await reviewRepository.deleteByIdAsync(id)
-        if (!hasDeleted) {
+        const hasDeletedProductReview = await productReviewsRepository.deleteProductReviewAsync(id)
+        if (!hasDeletedProductReview) {
+          return new ServiceResponse(
+            ResponseStatus.Failed,
+            'Review not detached from product',
+            false,
+            StatusCodes.INTERNAL_SERVER_ERROR
+          )
+        }
+
+        const hasDeletedReview = await reviewRepository.deleteByIdAsync(id)
+        if (!hasDeletedReview) {
           return new ServiceResponse(
             ResponseStatus.Failed,
             'Review not deleted',
@@ -99,7 +138,10 @@ export const getReviewService = (pool: Pool) => {
             StatusCodes.INTERNAL_SERVER_ERROR
           )
         }
-        return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review deleted', hasDeleted, StatusCodes.OK)
+
+        // TODO: trigger avg review computing and related product updates via other service
+
+        return new ServiceResponse<boolean>(ResponseStatus.Success, 'Review deleted', hasDeletedReview, StatusCodes.OK)
       } catch (ex) {
         const errorMessage = `Error deleting review with id ${id}: ${(ex as Error).message}`
         logger.error(errorMessage)

@@ -6,20 +6,24 @@ extendZodWithOpenApi(z)
 
 export type Product = z.infer<typeof ProductSchema>
 export type ProductCreate = z.infer<typeof ProductCreateSchema>
+export type ProductReviewIdsPopulated = z.infer<typeof ProductReviewIdsSchema>
+
 export const ProductCreateSchema = z.object({
   name: z.string(),
   description: z.string(),
   price: z.number(),
 })
 
-const ProductReviewInfoSchema = z.object({
-  reviewIds: z.array(z.number()),
-  avgReviewRating: z.number(),
-})
-
-export const ProductSchema = ProductCreateSchema.merge(ProductReviewInfoSchema).merge(
+export const ProductSchema = ProductCreateSchema.merge(
   z.object({
     id: z.number(),
+    avgReviewRating: z.number(),
+  })
+)
+
+const ProductReviewIdsSchema = ProductSchema.merge(
+  z.object({
+    reviewIds: z.array(z.number()),
   })
 )
 

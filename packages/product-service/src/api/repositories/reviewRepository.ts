@@ -5,7 +5,9 @@ import { Review, ReviewCreate, ReviewUpdate } from '../models/reviewModel'
 export const getReviewRepository = (pool: Pool) => {
   return {
     findAllAsync: async (): Promise<Review[]> => {
-      const [rows] = await pool.query('SELECT * FROM reviews')
+      const [rows] = await pool.query(
+        'SELECT r.*, pr.productId FROM reviews r LEFT JOIN productReviews pr ON r.id = pr.reviewId'
+      )
       let result: Review[] = []
       if (rows) {
         result = rows as Review[]
@@ -14,7 +16,10 @@ export const getReviewRepository = (pool: Pool) => {
     },
 
     findByIdAsync: async (id: number): Promise<Review | undefined> => {
-      const [rows] = await pool.query('SELECT * FROM reviews WHERE id = ?', [id])
+      const [rows] = await pool.query(
+        'SELECT r.*, pr.productId FROM reviews r LEFT JOIN productReviews pr ON r.id = pr.reviewId WHERE r.id = ?',
+        [id]
+      )
       if (Array.isArray(rows) && rows.length > 0) {
         return rows[0] as Review
       }
@@ -41,6 +46,11 @@ export const getReviewRepository = (pool: Pool) => {
 
     deleteByIdAsync: async (id: number): Promise<boolean> => {
       const [result] = await pool.query('DELETE FROM reviews WHERE id = ?', [id])
+      return !!(result && (result as ResultSetHeader).affectedRows)
+    },
+
+    deleteManyByIdsAsync: async (ids: number[]): Promise<boolean> => {
+      const [result] = await pool.query('DELETE FROM reviews WHERE id IN (?)', [ids])
       return !!(result && (result as ResultSetHeader).affectedRows)
     },
   }

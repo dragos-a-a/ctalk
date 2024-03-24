@@ -5,14 +5,18 @@ import { Pool } from 'mysql2/promise'
 import { logger } from '../../server'
 import { Product, ProductCreate } from '../models/productModel'
 import { getProductRepository } from '../repositories/productRepository'
+import { getProductReviewsRepository } from '../repositories/productReviewsRepository'
+import { getReviewRepository } from '../repositories/reviewRepository'
 
 export const getProductService = (pool: Pool) => {
   const productRepository = getProductRepository(pool)
+  const productReviewsRepository = getProductReviewsRepository(pool)
+  const reviewRepository = getReviewRepository(pool)
+
   return {
-    // Retrieves all products from the database
     findAll: async (): Promise<ServiceResponse<Product[] | null>> => {
       try {
-        const products = await productRepository.findAllAsync()
+        const products = await productRepository.findAllWithoutReviewsAsync()
         if (!products) {
           return new ServiceResponse(ResponseStatus.Failed, 'No Products found', null, StatusCodes.NOT_FOUND)
         }
@@ -24,10 +28,9 @@ export const getProductService = (pool: Pool) => {
       }
     },
 
-    // Retrieves a single product by their ID
     findById: async (id: number): Promise<ServiceResponse<Product | null>> => {
       try {
-        const product = await productRepository.findByIdAsync(id)
+        const product = await productRepository.findByIdWithoutReviewsAsync(id)
         if (!product) {
           return new ServiceResponse(ResponseStatus.Failed, 'Product not found', null, StatusCodes.NOT_FOUND)
         }
@@ -60,9 +63,9 @@ export const getProductService = (pool: Pool) => {
 
     update: async (id: number, product: ProductCreate): Promise<ServiceResponse<boolean>> => {
       try {
-        const foundItem = await productRepository.findByIdAsync(id)
+        const foundProduct = await productRepository.findByIdWithoutReviewsAsync(id)
 
-        if (!foundItem) {
+        if (!foundProduct) {
           return new ServiceResponse(ResponseStatus.Failed, 'Product not found', false, StatusCodes.NOT_FOUND)
         }
 
@@ -85,10 +88,24 @@ export const getProductService = (pool: Pool) => {
 
     delete: async (id: number): Promise<ServiceResponse<boolean>> => {
       try {
-        const foundItem = await productRepository.findByIdAsync(id)
+        const foundProduct = await productRepository.findByIdIncludingReviewIdsAsync(id)
 
-        if (!foundItem) {
+        if (!foundProduct) {
           return new ServiceResponse(ResponseStatus.Failed, 'Product not found', false, StatusCodes.NOT_FOUND)
+        }
+
+        // TODO (out of scope): this can be improved via transaction/rollback
+
+        const hasDeletedProductReviewLink = await productReviewsRepository.deleteManyByProductIdAsync(id)
+        const hasDeletedReviews = await reviewRepository.deleteManyByIdsAsync(foundProduct.reviewIds)
+
+        if (!hasDeletedProductReviewLink || !hasDeletedReviews) {
+          return new ServiceResponse(
+            ResponseStatus.Failed,
+            'Product reviews not deleted',
+            false,
+            StatusCodes.INTERNAL_SERVER_ERROR
+          )
         }
 
         const hasDeleted = await productRepository.deleteByIdAsync(id)
@@ -100,6 +117,7 @@ export const getProductService = (pool: Pool) => {
             StatusCodes.INTERNAL_SERVER_ERROR
           )
         }
+
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Product deleted', hasDeleted, StatusCodes.OK)
       } catch (ex) {
         const errorMessage = `Error deleting product with id ${id}: ${(ex as Error).message}`
