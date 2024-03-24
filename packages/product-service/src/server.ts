@@ -1,3 +1,4 @@
+import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 import { healthCheckRouter } from '@common/api/healthCheck/healthCheckRouter'
 import { getOpenAPIRouter } from '@common/api-docs/openAPIRouter'
 import errorHandler from '@common/generic/middleware/errorHandler'
@@ -11,7 +12,8 @@ import mysql from 'mysql2/promise'
 import { pino } from 'pino'
 
 import { initDb } from '../scripts/initDb'
-import { getProductRouter, productRegistry } from './api/productRouter'
+import { getProductRouter } from './api/routers/productRouter'
+import { getReviewRouter } from './api/routers/reviewRouter'
 
 const logger = pino({ name: 'server start' })
 
@@ -29,6 +31,7 @@ const pool = mysql.createPool({
 })
 
 initDb(pool)
+const openApiRegistry = new OpenAPIRegistry()
 
 const app: Express = express()
 
@@ -48,10 +51,11 @@ app.use(requestLogger())
 
 // Routes
 app.use('/health-check', healthCheckRouter)
-app.use('/products', getProductRouter(pool))
+app.use('/products', getProductRouter(pool, openApiRegistry))
+app.use('/reviews', getReviewRouter(pool, openApiRegistry))
 
 // Swagger UI
-app.use(getOpenAPIRouter(productRegistry))
+app.use(getOpenAPIRouter(openApiRegistry))
 
 // Error handlers
 app.use(errorHandler())

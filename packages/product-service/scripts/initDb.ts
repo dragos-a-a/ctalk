@@ -50,7 +50,7 @@ export const initDb = async (pool: mysql.Pool): Promise<void> => {
       firstName VARCHAR(255) NOT NULL,
       lastName VARCHAR(255) NOT NULL,
       reviewText TEXT NOT NULL,
-      rating DECIMAL(3, 2) NOT NULL
+      rating TINYINT NOT NULL
     )
   `
 

@@ -11,19 +11,19 @@ import {
   ProductCreate,
   ProductCreateSchema,
   ProductSchema,
-} from './models/productModel'
-import { getProductService } from './productService'
+  PutProductSchema,
+} from '../models/productModel'
+import { getProductService } from '../services/productService'
 
-export const productRegistry = new OpenAPIRegistry()
-
-productRegistry.register('Product', ProductSchema)
-productRegistry.register('Product Create', ProductCreateSchema)
-
-export const getProductRouter = (pool: Pool): Router => {
+export const getProductRouter = (pool: Pool, openApiRegistry: OpenAPIRegistry): Router => {
   const router = express.Router()
   const productService = getProductService(pool)
 
-  productRegistry.registerPath({
+  openApiRegistry.register('Product', ProductSchema)
+  openApiRegistry.register('Product Create', ProductCreateSchema)
+  openApiRegistry.register('Product Update', PutProductSchema)
+
+  openApiRegistry.registerPath({
     method: 'get',
     path: '/products',
     tags: ['Product'],
@@ -35,7 +35,7 @@ export const getProductRouter = (pool: Pool): Router => {
     handleServiceResponse(serviceResponse, res)
   })
 
-  productRegistry.registerPath({
+  openApiRegistry.registerPath({
     method: 'get',
     path: '/products/{id}',
     tags: ['Product'],
@@ -49,7 +49,7 @@ export const getProductRouter = (pool: Pool): Router => {
     handleServiceResponse(serviceResponse, res)
   })
 
-  productRegistry.registerPath({
+  openApiRegistry.registerPath({
     method: 'post',
     path: '/products',
     tags: ['Product'],
@@ -70,7 +70,7 @@ export const getProductRouter = (pool: Pool): Router => {
     handleServiceResponse(serviceResponse, res)
   })
 
-  productRegistry.registerPath({
+  openApiRegistry.registerPath({
     method: 'put',
     path: '/products/{id}',
     tags: ['Product'],
@@ -87,13 +87,13 @@ export const getProductRouter = (pool: Pool): Router => {
     responses: createApiResponse(z.boolean(), 'Success'),
   })
 
-  router.put('/:id', validateRequest(GetProductSchema), async (req: Request, res: Response) => {
+  router.put('/:id', validateRequest(PutProductSchema), async (req: Request, res: Response) => {
     const id = parseInt(req.params.id as string, 10)
     const serviceResponse = await productService.update(id, req.body as ProductCreate)
     handleServiceResponse(serviceResponse, res)
   })
 
-  productRegistry.registerPath({
+  openApiRegistry.registerPath({
     method: 'delete',
     path: '/products/{id}',
     tags: ['Product'],

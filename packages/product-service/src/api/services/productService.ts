@@ -2,9 +2,9 @@ import { ResponseStatus, ServiceResponse } from '@common/generic/models/serviceR
 import { StatusCodes } from 'http-status-codes'
 import { Pool } from 'mysql2/promise'
 
-import { logger } from '../server'
-import { Product, ProductCreate } from './models/productModel'
-import { getProductRepository } from './productRepository'
+import { logger } from '../../server'
+import { Product, ProductCreate } from '../models/productModel'
+import { getProductRepository } from '../repositories/productRepository'
 
 export const getProductService = (pool: Pool) => {
   const productRepository = getProductRepository(pool)

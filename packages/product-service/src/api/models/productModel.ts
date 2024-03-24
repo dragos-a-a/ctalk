@@ -28,13 +28,19 @@ export const GetProductSchema = z.object({
   params: z.object({ id: commonValidations.id }),
 })
 
+const updateFieldsValidation = z.object({
+  name: z.string().refine((name) => name.length > 3, { message: 'Name must have at least 3 characters' }),
+  description: z.string().refine((description) => description.length > 0, { message: 'Description must not be empty' }),
+  price: z.number().refine((price) => price > 0, { message: 'Price must be greater than 0' }),
+})
+
 // Input Validation for 'POST products' endpoint
 export const PostProductSchema = z.object({
-  body: z.object({
-    name: z.string().refine((name) => name.length > 3, { message: 'Name must have at least 3 characters' }),
-    description: z
-      .string()
-      .refine((description) => description.length > 0, { message: 'Description must not be empty' }),
-    price: z.number().refine((price) => price > 0, { message: 'Price must be greater than 0' }),
-  }),
+  body: updateFieldsValidation,
+})
+
+// Input Validation for 'PUT products/:id' endpoint
+export const PutProductSchema = z.object({
+  params: z.object({ id: commonValidations.id }),
+  body: updateFieldsValidation,
 })

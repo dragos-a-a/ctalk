@@ -1,6 +1,6 @@
 import { Pool, ResultSetHeader } from 'mysql2/promise'
 
-import { Product, ProductCreate } from './models/productModel'
+import { Product, ProductCreate } from '../models/productModel'
 
 export const getProductRepository = (pool: Pool) => {
   return {
