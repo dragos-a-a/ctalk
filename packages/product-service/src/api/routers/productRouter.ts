@@ -20,7 +20,7 @@ import { getReviewService } from '../services/reviewService'
 
 export const getProductRouter = (pool: Pool, redis: Redis, openApiRegistry: OpenAPIRegistry): Router => {
   const router = express.Router()
-  const productService = getProductService(pool)
+  const productService = getProductService(pool, redis)
   const reviewService = getReviewService(pool, redis)
 
   openApiRegistry.register('Product', ProductSchema)

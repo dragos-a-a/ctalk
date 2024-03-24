@@ -1,5 +1,6 @@
 import { ResponseStatus, ServiceResponse } from '@common/generic/models/serviceResponse'
 import { StatusCodes } from 'http-status-codes'
+import { Redis } from 'ioredis'
 import { Pool } from 'mysql2/promise'
 
 import { logger } from '../../server'
@@ -8,10 +9,15 @@ import { getProductRepository } from '../repositories/productRepository'
 import { getProductReviewsRepository } from '../repositories/productReviewsRepository'
 import { getReviewRepository } from '../repositories/reviewRepository'
 
-export const getProductService = (pool: Pool) => {
+export const getProductService = (pool: Pool, redis: Redis) => {
   const productRepository = getProductRepository(pool)
   const productReviewsRepository = getProductReviewsRepository(pool)
   const reviewRepository = getReviewRepository(pool)
+
+  const getProductCacheKey = (id: number) => `product:${id}`
+  const getProductReviewCacheKey = (productId: number) => `product:${productId}:reviews`
+  const getReviewCacheKey = (id: number) => `review:${id}`
+  const cacheDuration = 60 * 60 // 1 hour
 
   return {
     findAll: async (): Promise<ServiceResponse<Product[] | null>> => {
@@ -30,10 +36,17 @@ export const getProductService = (pool: Pool) => {
 
     findById: async (id: number): Promise<ServiceResponse<Product | null>> => {
       try {
+        const cacheKey = getProductCacheKey(id)
+        const cachedProduct = await redis.get(cacheKey)
+        if (cachedProduct) {
+          const result = JSON.parse(cachedProduct) as Product
+          return new ServiceResponse<Product>(ResponseStatus.Success, 'Product found', result, StatusCodes.OK)
+        }
         const product = await productRepository.findByIdWithoutReviewsAsync(id)
         if (!product) {
           return new ServiceResponse(ResponseStatus.Failed, 'Product not found', null, StatusCodes.NOT_FOUND)
         }
+        await redis.set(cacheKey, JSON.stringify(product), 'EX', cacheDuration)
         return new ServiceResponse<Product>(ResponseStatus.Success, 'Product found', product, StatusCodes.OK)
       } catch (ex) {
         const errorMessage = `Error finding product with id ${id}:, ${(ex as Error).message}`
@@ -78,6 +91,7 @@ export const getProductService = (pool: Pool) => {
             StatusCodes.INTERNAL_SERVER_ERROR
           )
         }
+        await redis.del(getProductCacheKey(id))
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Product updated', hasUpdated, StatusCodes.OK)
       } catch (ex) {
         const errorMessage = `Error updating product with id ${id}: ${(ex as Error).message}`
@@ -117,6 +131,12 @@ export const getProductService = (pool: Pool) => {
             StatusCodes.INTERNAL_SERVER_ERROR
           )
         }
+
+        await Promise.all([
+          redis.del(getProductCacheKey(id)),
+          redis.del(getProductReviewCacheKey(id)),
+          ...foundProduct.reviewIds.map((reviewId) => redis.del(getReviewCacheKey(reviewId))),
+        ])
 
         return new ServiceResponse<boolean>(ResponseStatus.Success, 'Product deleted', hasDeleted, StatusCodes.OK)
       } catch (ex) {

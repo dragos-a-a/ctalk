@@ -6,6 +6,7 @@ import { getReviewScoringRepository } from './reviewScoringRepository'
 
 export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
   const reviewScoringRepository = getReviewScoringRepository(pool)
+  const invalidateProductCache = async (productId: number) => redisCache.del(`product:${productId}`)
 
   return {
     calculateRatingOnAdd: async (productId: number, reviewId: number, newRating: number): Promise<boolean> => {
@@ -35,7 +36,7 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
         )
 
         await reviewScoringRepository.updateAvgReviewRating(productId, updatedRating)
-        await redisCache.del(`product:${productId}`)
+        await invalidateProductCache(productId)
 
         return true
       } catch (ex) {
@@ -83,7 +84,7 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
           return false
         }
 
-        await redisCache.del(`product:${productId}`)
+        await invalidateProductCache(productId)
 
         return true
       } catch (ex) {
@@ -124,7 +125,7 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
           return false
         }
 
-        await redisCache.del(`product:${productId}`)
+        await invalidateProductCache(productId)
 
         return true
       } catch (ex) {
@@ -148,7 +149,7 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
           return false
         }
 
-        redisCache.del(`product:${productId}`)
+        await invalidateProductCache(productId)
 
         return hasUpdated
       } catch (ex) {
