@@ -2,17 +2,19 @@ import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 import { createApiResponse } from '@common/api-docs/openAPIResponseBuilders'
 import { handleServiceResponse, validateRequest } from '@common/generic/utils/httpHandlers'
 import express, { Request, Response, Router } from 'express'
+import { Pool } from 'mysql2/promise'
 import { z } from 'zod'
 
 import { GetProductSchema, ProductSchema } from './models/productModel'
-import { productService } from './productService'
+import { getProductService } from './productService'
 
 export const productRegistry = new OpenAPIRegistry()
 
 productRegistry.register('Product', ProductSchema)
 
-export const productRouter: Router = (() => {
+export const getProductRouter = (pool: Pool): Router => {
   const router = express.Router()
+  const productService = getProductService(pool)
 
   productRegistry.registerPath({
     method: 'get',
@@ -41,4 +43,4 @@ export const productRouter: Router = (() => {
   })
 
   return router
-})()
+}

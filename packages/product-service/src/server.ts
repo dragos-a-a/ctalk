@@ -11,7 +11,7 @@ import mysql from 'mysql2/promise'
 import { pino } from 'pino'
 
 import { initDb } from '../scripts/initDb'
-import { productRegistry, productRouter } from './api/productRouter'
+import { getProductRouter, productRegistry } from './api/productRouter'
 
 const logger = pino({ name: 'server start' })
 
@@ -46,15 +46,9 @@ app.use(express.json())
 // Request logging
 app.use(requestLogger())
 
-// Middleware to attach the pool to the request
-app.use((req: any, res, next) => {
-  req.pool = pool
-  next()
-})
-
 // Routes
 app.use('/health-check', healthCheckRouter)
-app.use('/products', productRouter)
+app.use('/products', getProductRouter(pool))
 
 // Swagger UI
 app.use(getOpenAPIRouter(productRegistry))
