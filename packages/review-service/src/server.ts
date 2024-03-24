@@ -6,7 +6,7 @@ import { pino } from 'pino'
 
 import { getReviewScoringService } from './api/reviewScoringService'
 
-const logger = pino({ name: 'server start' })
+const logger = pino({ name: 'review' })
 logger.info('Initializing database')
 const { DB_NAME, DB_HOST, DB_PORT, DB_USER, DB_PWD } = env
 const pool = mysql.createPool({

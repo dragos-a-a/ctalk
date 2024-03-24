@@ -16,7 +16,7 @@ import { initDb } from '../scripts/initDb'
 import { getProductRouter } from './api/routers/productRouter'
 import { getReviewRouter } from './api/routers/reviewRouter'
 
-const logger = pino({ name: 'server start' })
+const logger = pino({ name: 'product' })
 
 logger.info('Initializing database')
 const { DB_NAME, DB_HOST, DB_PORT, DB_USER, DB_PWD } = env
@@ -69,7 +69,7 @@ app.use(requestLogger())
 
 // Routes
 app.use('/health-check', healthCheckRouter)
-app.use('/products', getProductRouter(pool, openApiRegistry))
+app.use('/products', getProductRouter(pool, redis, openApiRegistry))
 app.use('/reviews', getReviewRouter(pool, redis, openApiRegistry))
 
 // Swagger UI

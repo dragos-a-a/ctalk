@@ -17,7 +17,7 @@ export const getProductService = (pool: Pool) => {
     findAll: async (): Promise<ServiceResponse<Product[] | null>> => {
       try {
         const products = await productRepository.findAllWithoutReviewsAsync()
-        if (!products) {
+        if (!products || products.length === 0) {
           return new ServiceResponse(ResponseStatus.Failed, 'No Products found', null, StatusCodes.NOT_FOUND)
         }
         return new ServiceResponse<Product[]>(ResponseStatus.Success, 'Products found', products, StatusCodes.OK)

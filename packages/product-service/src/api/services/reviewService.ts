@@ -19,7 +19,7 @@ export const getReviewService = (pool: Pool, redis: Redis) => {
     findAll: async (): Promise<ServiceResponse<Review[] | null>> => {
       try {
         const reviews = await reviewRepository.findAllAsync()
-        if (!reviews) {
+        if (!reviews || reviews.length === 0) {
           return new ServiceResponse(ResponseStatus.Failed, 'No Reviews found', null, StatusCodes.NOT_FOUND)
         }
         return new ServiceResponse<Review[]>(ResponseStatus.Success, 'Reviews found', reviews, StatusCodes.OK)
@@ -39,6 +39,20 @@ export const getReviewService = (pool: Pool, redis: Redis) => {
         return new ServiceResponse<Review>(ResponseStatus.Success, 'Review found', review, StatusCodes.OK)
       } catch (ex) {
         const errorMessage = `Error finding review with id ${id}:, ${(ex as Error).message}`
+        logger.error(errorMessage)
+        return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR)
+      }
+    },
+
+    findByProductId: async (productId: number): Promise<ServiceResponse<Review[] | null>> => {
+      try {
+        const reviews = await reviewRepository.findByProductIdAsync(productId)
+        if (!reviews || reviews.length === 0) {
+          return new ServiceResponse(ResponseStatus.Failed, 'No reviews found', null, StatusCodes.NOT_FOUND)
+        }
+        return new ServiceResponse<Review[]>(ResponseStatus.Success, 'Reviews found', reviews, StatusCodes.OK)
+      } catch (ex) {
+        const errorMessage = `Error finding reviews with product id ${productId}:, ${(ex as Error).message}`
         logger.error(errorMessage)
         return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR)
       }

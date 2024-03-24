@@ -25,6 +25,18 @@ export const getReviewRepository = (pool: Pool) => {
       }
     },
 
+    findByProductIdAsync: async (productId: number): Promise<Review[]> => {
+      const [rows] = await pool.query(
+        'SELECT r.*, pr.productId FROM reviews r LEFT JOIN productReviews pr ON r.id = pr.reviewId WHERE pr.productId = ?',
+        [productId]
+      )
+      let result: Review[] = []
+      if (rows) {
+        result = rows as Review[]
+      }
+      return result
+    },
+
     createAsync: async (review: ReviewCreate): Promise<number | undefined> => {
       const [result] = await pool.query(
         'INSERT INTO reviews (firstName, lastName, reviewText, rating) VALUES (?, ?, ?, ?)',

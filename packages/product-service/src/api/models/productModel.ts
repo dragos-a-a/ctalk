@@ -27,7 +27,7 @@ const ProductReviewIdsSchema = ProductSchema.merge(
   })
 )
 
-// Input Validation for 'GET products/:id' endpoint
+// Input Validation for 'GET products/:id' and 'GET products/:id/reviews' endpoints
 export const GetProductSchema = z.object({
   params: z.object({ id: commonValidations.id }),
 })

@@ -2,6 +2,7 @@ import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 import { createApiResponse } from '@common/api-docs/openAPIResponseBuilders'
 import { handleServiceResponse, validateRequest } from '@common/generic/utils/httpHandlers'
 import express, { Request, Response, Router } from 'express'
+import { Redis } from 'ioredis'
 import { Pool } from 'mysql2/promise'
 import { z } from 'zod'
 
@@ -13,11 +14,14 @@ import {
   ProductSchema,
   PutProductSchema,
 } from '../models/productModel'
+import { ReviewSchema } from '../models/reviewModel'
 import { getProductService } from '../services/productService'
+import { getReviewService } from '../services/reviewService'
 
-export const getProductRouter = (pool: Pool, openApiRegistry: OpenAPIRegistry): Router => {
+export const getProductRouter = (pool: Pool, redis: Redis, openApiRegistry: OpenAPIRegistry): Router => {
   const router = express.Router()
   const productService = getProductService(pool)
+  const reviewService = getReviewService(pool, redis)
 
   openApiRegistry.register('Product', ProductSchema)
   openApiRegistry.register('Product Create', ProductCreateSchema)
@@ -104,6 +108,20 @@ export const getProductRouter = (pool: Pool, openApiRegistry: OpenAPIRegistry): 
   router.delete('/:id', validateRequest(GetProductSchema), async (req: Request, res: Response) => {
     const id = parseInt(req.params.id as string, 10)
     const serviceResponse = await productService.delete(id)
+    handleServiceResponse(serviceResponse, res)
+  })
+
+  openApiRegistry.registerPath({
+    method: 'get',
+    path: '/products/{id}/reviews',
+    tags: ['Product'],
+    request: { params: GetProductSchema.shape.params },
+    responses: createApiResponse(z.array(ReviewSchema), 'Success'),
+  })
+
+  router.get('/:id/reviews', validateRequest(GetProductSchema), async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id as string, 10)
+    const serviceResponse = await reviewService.findByProductId(id)
     handleServiceResponse(serviceResponse, res)
   })
 
