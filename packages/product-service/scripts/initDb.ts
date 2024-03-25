@@ -38,7 +38,8 @@ export const initDb = async (logger: Logger, pool: mysql.Pool): Promise<void> =>
       name VARCHAR(255) NOT NULL,
       description VARCHAR(255) NOT NULL,
       price DECIMAL(10, 2) NOT NULL,
-      avgReviewRating DECIMAL(3, 2)
+      avgReviewRating DECIMAL(3, 2),
+      INDEX avgReviewRating_index (avgReviewRating)
     )
   `
 
@@ -51,7 +52,8 @@ export const initDb = async (logger: Logger, pool: mysql.Pool): Promise<void> =>
       firstName VARCHAR(255) NOT NULL,
       lastName VARCHAR(255) NOT NULL,
       reviewText TEXT NOT NULL,
-      rating TINYINT NOT NULL
+      rating TINYINT NOT NULL,
+      INDEX rating_index (rating)
     )
   `
 

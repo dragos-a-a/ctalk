@@ -6,7 +6,7 @@ import { pino } from 'pino'
 import promiseRetry from 'promise-retry'
 import Redlock, { Lock } from 'redlock'
 
-import { getReviewScoringService } from './api/reviewScoringService'
+import { getReviewScoringService } from './reviewScoringService'
 
 const logger = pino({ name: 'review' })
 logger.info('Initializing database')
@@ -78,15 +78,53 @@ redisSubscriber.on('error', (error) => {
   logger.error('Failed to connect to Redis as subscriber:', error)
 })
 
+// Calculates the avg rating for a product in a simple way (delta based on the previous avgRating and the new rating and type of action)
+// Should be more efficient than a full recalculation of the avg rating
+const calculateSimpleRatingChange = async (
+  productId: number,
+  reviewId: number,
+  type: 'add' | 'update' | 'delete',
+  newRating?: number,
+  oldRating?: number
+) => {
+  switch (type) {
+    case 'add':
+      if (!newRating) {
+        break
+      }
+      return await reviewScoringService.calculateRatingOnAdd(productId, reviewId, newRating)
+    case 'update':
+      if (!newRating || !oldRating) {
+        break
+      }
+      return await reviewScoringService.calculateRatingOnUpdate(productId, reviewId, newRating, oldRating)
+    case 'delete':
+      if (!oldRating) {
+        break
+      }
+      return await reviewScoringService.calculateRatingOnDelete(productId, reviewId, oldRating)
+    default:
+      logger.error('Invalid message type')
+      break
+  }
+
+  return false
+}
+
 const reviewScoringService = getReviewScoringService(pool, redisCache)
 const getProductProcessingCacheKey = (productId: number) => `processing:${productId}`
 
-const retryHeavyRatingCalculation = async (productId: number) => {
+const MAX_RETRIES_FOR_FULL_CALCULATION = 100
+
+// Calculates the full rating for a product
+// used if simple calculations fail or if by the end of a simple calculations new changes came in
+// recalulates until there are no more messages to process for that productId
+const retryCalculateCompexRatingChange = async (productId: number) => {
   try {
     await promiseRetry(
       async (retry, number: number) => {
         if (number > 1) {
-          logger.info(`retryHeavyRatingCalculation attempt ${number} for productId ${productId}`)
+          logger.info(`Attempt ${number} in calculating complex rating change for productId ${productId}`)
         }
 
         try {
@@ -103,18 +141,29 @@ const retryHeavyRatingCalculation = async (productId: number) => {
             retry(null)
           }
         } catch (err) {
-          logger.error(`Error in retryHeavyRatingCalculation for productId ${productId}:`, err)
+          // if this fails we will have an inconsistent state for the avg rating
+          // it should reach eventual consistency the next time a full recalculation is triggered
+          // NOTE: it might take some time to reach cosistency and we might need a batch job to recalculate all the avg ratings (maybe nightly?)
+          // or we store the corrupted productIds and recalculate them in a batch job or upon service startup
+          logger.error(`Error in trying to recalculate complex rating change for productId ${productId}:`, err)
         }
       },
       {
-        retries: 20,
+        retries: MAX_RETRIES_FOR_FULL_CALCULATION,
       }
     )
   } catch {
-    logger.info(`Failed retryHeavyRatingCalculation after 20 retries for productId ${productId}`)
+    logger.info(`Failed retryCalculateCompexRatingChange after 20 retries for productId ${productId}`)
   }
 }
 
+// When we receive a message that a review change happened we need to recalculate the avg rating.
+// In order to support multiple instances and high traffic of different actions for one productId we use locking and redis cache to maintain consistency.
+// For the optimistic case in which a single review action happens (new review added / updated / deleted)
+// we try to update the avg rating via a delta based on the previous avgRating and the new rating and type of action (to optimize db usage).
+// If we have multiple actions happening on the same productId we fallback to a full recalculation of the avg rating (which is more expensive).
+// If by the time we finish the full recalculation new actions happened we retry the full recalculation
+// until there is a window in which there are no more actions between the start and the end of the recalculation.
 redisSubscriber.on('message', async (channel, message) => {
   let lock: Lock | null = null
   try {
@@ -150,67 +199,56 @@ redisSubscriber.on('message', async (channel, message) => {
 
       logger.info(`Received message from ${channel}: ${message}`)
 
+      // checking if we are already processing this productId
+      // we want to ensure that only 1 service is processing the productId at a time
       const processingCacheKey = getProductProcessingCacheKey(productId)
       const processingQueueCacheValue = await redisCache.get(processingCacheKey)
+
       if (processingQueueCacheValue) {
         const processingQueue = JSON.parse(processingQueueCacheValue) as string[]
         if (processingQueue.includes(timestamp.toString())) {
-          // already processing this message (possibly missed by the lock due to crash)
+          // already processing this message (product id and timestamp) (possibly missed by the lock due to crash)
           return
         }
+
         processingQueue.push(timestamp.toString())
+
         logger.info(`Already processing message for product ${productId}. Adding timestamp ${timestamp} to queue.`)
+
+        // this will let know other instances that a new message came in and they should recalculate the whole rating
         await redisCache.set(processingCacheKey, JSON.stringify(processingQueue), 'EX', 60)
+
         return
       } else {
+        // this will let other instances know that we started processing for this productId
+        // and they not try to calculate the score but just mark that a change came for the productId
         await redisCache.set(processingCacheKey, [timestamp].toString(), 'EX', 60)
       }
 
-      let hasProcessed = false
-
-      switch (type) {
-        case 'add':
-          if (!newRating) {
-            break
-          }
-          hasProcessed = await reviewScoringService.calculateRatingOnAdd(productId, reviewId, newRating)
-          break
-        case 'update':
-          if (!newRating || !oldRating) {
-            break
-          }
-          hasProcessed = await reviewScoringService.calculateRatingOnUpdate(productId, reviewId, newRating, oldRating)
-          break
-        case 'delete':
-          if (!oldRating) {
-            break
-          }
-          hasProcessed = await reviewScoringService.calculateRatingOnDelete(productId, reviewId, oldRating)
-          break
-        default:
-          logger.error('Invalid message type')
-          break
-      }
+      const hasProcessed = await calculateSimpleRatingChange(productId, reviewId, type, newRating, oldRating)
 
       if (!hasProcessed) {
         logger.error(`Failed to process efficiently for message ${message}. Recalculating the whole rating`)
-        await retryHeavyRatingCalculation(productId)
+        await retryCalculateCompexRatingChange(productId)
         return
       }
 
+      // check after we did the simple processing the status of the processing queue
       const processingQueueCacheValueAfterProcessing = await redisCache.get(processingCacheKey)
       if (processingQueueCacheValueAfterProcessing) {
         const processingQueueAfterProcessing = JSON.parse(processingQueueCacheValueAfterProcessing) as string[]
         const index = processingQueueAfterProcessing.indexOf(timestamp.toString())
         if (index !== -1) {
+          // find and remove the current message from the queue
           processingQueueAfterProcessing.splice(index, 1)
           if (processingQueueAfterProcessing.length === 0) {
+            // no new messages came in while we were processing
             await redisCache.del(processingCacheKey)
             logger.info(`Finished processing message for product ${productId}, timestamp ${timestamp}`)
             return
           } else {
-            // recalculate the whole review rating until no more messages are coming to the queue
-            await retryHeavyRatingCalculation(productId)
+            // new messages came in while we were processing so werecalculate the whole review rating until no more messages are coming to the queue
+            await retryCalculateCompexRatingChange(productId)
           }
         }
       }

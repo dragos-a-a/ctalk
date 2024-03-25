@@ -1,7 +1,7 @@
 import { Redis } from 'ioredis'
 import { Pool } from 'mysql2/promise'
 
-import { logger } from '../server'
+import { logger } from './orchestrator'
 import { getReviewScoringRepository } from './reviewScoringRepository'
 
 export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {

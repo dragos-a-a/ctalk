@@ -1,4 +1,4 @@
-import { logger } from './src/server'
+import { logger } from './src/orchestrator'
 
 const onCloseSignal = () => {
   logger.info('sigint received, shutting down')
