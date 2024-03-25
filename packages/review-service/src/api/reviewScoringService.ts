@@ -30,7 +30,8 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
           )
           return false
         }
-        const updatedRating = (curentAvgReviewRating * (totalNumberOfReviews - 1) + newRating) / totalNumberOfReviews
+        const updatedRating =
+          ((curentAvgReviewRating || 0) * (totalNumberOfReviews - 1) + newRating) / totalNumberOfReviews
         logger.info(
           `Updated rating for productId: ${productId} is ${updatedRating} from ${curentAvgReviewRating} by adding a new review rating ${newRating} with total ${totalNumberOfReviews} reviews`
         )
@@ -73,7 +74,7 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
         }
 
         const updatedRating =
-          (curentAvgReviewRating * totalNumberOfReviews - oldRating + newRating) / totalNumberOfReviews
+          ((curentAvgReviewRating || 0) * totalNumberOfReviews - oldRating + newRating) / totalNumberOfReviews
         logger.info(
           `Updated rating for productId: ${productId} is ${updatedRating} from ${curentAvgReviewRating} by updating review rating from ${oldRating} to ${newRating} with total ${totalNumberOfReviews} reviews`
         )
@@ -98,6 +99,7 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
       try {
         logger.info(`Calculating review rating on delete for productId: ${productId} and reviewId: ${reviewId}`)
         const curentAvgReviewRating = await reviewScoringRepository.getAvgReviewRating(productId)
+        // number of remaining reviews after delete
         const totalNumberOfReviews = await reviewScoringRepository.getNumberOfReviews(productId)
         if (curentAvgReviewRating === undefined) {
           logger.error(
@@ -105,16 +107,18 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
           )
           return false
         }
-        if (!totalNumberOfReviews) {
-          // should have at least 1 review
-          logger.error(
-            `Error calculating review rating on delete for productId: ${productId}: no review data found. Possible review got deleted in the mean time.`
-          )
-          return false
+
+        let updatedRating: number | null = 0
+        if (totalNumberOfReviews > 1) {
+          updatedRating = ((curentAvgReviewRating || 0) * totalNumberOfReviews - oldRating) / (totalNumberOfReviews - 1)
+        } else if (totalNumberOfReviews === 1) {
+          const existingRatings = await reviewScoringRepository.getAllReviewRatingsForProduct(productId)
+          // in case last review gets deleted in the mean time the function fails and we tackle it via whole score recalculation
+          updatedRating = existingRatings[0]
+        } else {
+          updatedRating = null
         }
 
-        // TODO: fix math here to not divide by 0
-        const updatedRating = (curentAvgReviewRating * totalNumberOfReviews - oldRating) / (totalNumberOfReviews - 1)
         logger.info(
           `Updated rating for productId: ${productId} is ${updatedRating} from ${curentAvgReviewRating} by deleting a review rating ${oldRating} with total ${totalNumberOfReviews} reviews`
         )
@@ -135,12 +139,18 @@ export const getReviewScoringService = (pool: Pool, redisCache: Redis) => {
       }
     },
 
+    // this is a fallback mechanism in case we have missed some review updates or simple operations fail
+    // we recalculating the whole rating
     calculateFullRating: async (productId: number): Promise<boolean> => {
       try {
         logger.info(`Calculating full review rating for productId: ${productId}`)
         const ratings = await reviewScoringRepository.getAllReviewRatingsForProduct(productId)
 
-        const updatedRating = ratings.reduce((acc, rating) => acc + rating, 0) / ratings.length
+        let updatedRating: number | null = null
+        if (ratings.length > 0) {
+          updatedRating = ratings.reduce((acc, rating) => acc + rating, 0) / ratings.length
+        }
+
         logger.info(`Updated rating for productId: ${productId} is ${updatedRating} from ${ratings.length} reviews`)
 
         const hasUpdated = await reviewScoringRepository.updateAvgReviewRating(productId, updatedRating)
